@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "0.1.0"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "0.1.0",
+			"CompanyName": "William-Weng",
+			"FileDescription": "一個將影片與圖片外框結合的小工具",
+			"LegalCopyright": "Copyright © 2026, William Weng",
+			"ProductName": "Device Mockup",
+			"Comments": "Built with Wails, Go, Svelte and FFmpeg"
+		}
+	}
+}
