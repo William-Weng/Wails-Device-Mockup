@@ -35,6 +35,11 @@
     });
 
     async function imageFileDroppedAction(data: DroppedData): Promise<void> {
+
+      if (isCoverting) {
+            return;
+        }
+
         const info = await ParseFilePath(data.path);
         const ext = info[2];
 
@@ -122,6 +127,7 @@
             min="10"
             max="100"
             step="1"
+            disabled={isCoverting}
             bind:value={videoWidthScale}
         />
     </section>

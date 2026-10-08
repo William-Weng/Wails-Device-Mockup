@@ -44,8 +44,8 @@ func main() {
 
 	app.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:          "Device Mockup",
-		Width:          1000,
-		Height:         640,
+		Width:          500,
+		Height:         400,
 		EnableFileDrop: true,
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 50,

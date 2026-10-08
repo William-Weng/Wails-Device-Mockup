@@ -37,10 +37,6 @@ func ComposeVideoWithFrame(ctx context.Context, inputVideo string, inputVideoWid
 		return err
 	}
 
-	// 注意：
-	// - 不要傳入 `bash`、`sh -c` 或把整條指令組成單一字串。
-	// - exec.CommandContext 會把每個字串視為一個完整 argument，
-	//   可正確處理路徑中的空白，並避免 shell injection。
 	cmd := exec.CommandContext(
 		ctx,
 		ffmpegPath,
@@ -106,7 +102,7 @@ func buildFilterComplex(ctx context.Context, inputVideo string, inputVideoWidth 
 
 	// 使用 fmt.Sprintf 把所有計算結果放進 FFmpeg filter graph
 	filterComplex := fmt.Sprintf(
-		"color=c=black:s=%dx%d:r=%s[bg];"+
+		"color=c=#1c1c1c:s=%dx%d:r=%s[bg];"+
 			"[0:v]scale=%d:%d:force_original_aspect_ratio=increase,"+
 			"crop=%d:%d,"+
 			"setsar=1[screen];"+
