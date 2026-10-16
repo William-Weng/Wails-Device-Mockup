@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=wails-device-mockup
+Exec=wails-device-mockup
+Icon=wails-device-mockup
+Categories=Development;
+Terminal=false
+Keywords=wails
+Version=1.0
+StartupNotify=false
