@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"wails-device-mockup/backend/utility"
 	"wails-device-mockup/backend/utility/platform"
 
@@ -72,6 +73,21 @@ func ComposeVideoWithFrame(app *application.App, ctx context.Context, inputVideo
 	)
 
 	cmd = platform.HideWindow(cmd)
+
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+
+	cmd.Cancel = func() error {
+		if cmd.Process == nil {
+			return nil
+		}
+		return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+	}
+
+	// if err := cmd.Run(); err != nil {
+	// 	return cmd.Process.Kill()
+	// }
 
 	err = utility.RunCommandStream(
 		cmd,
@@ -181,7 +197,7 @@ func buildFilterComplex(ctx context.Context, inputVideo string, inputVideoWidth 
 
 	filterComplex := fmt.Sprintf(
 		// 先建立最底層背景
-		"color=c=#1c1c1c:s=%[1]dx%[2]d:r=%[3]s,format=rgba[bg];"+
+		"color=c=#000000:s=%[1]dx%[2]d:r=%[3]s,format=rgba[bg];"+
 
 			// 將影片縮放成 cover，並裁成前端預覽實際顯示大小
 			"[0:v]scale=%[4]d:%[5]d:force_original_aspect_ratio=increase,"+

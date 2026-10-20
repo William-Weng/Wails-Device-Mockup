@@ -5,7 +5,7 @@
 
     import { SetFramePath, ImageInformation } from "../bindings/wails-device-mockup/backend/imagepreviewservice";
     import { SetVideoPath } from "../bindings/wails-device-mockup/backend/videopreviewservice";
-    import { Compose } from "../bindings/wails-device-mockup/backend/videocomposeservice";
+    import { Compose, Cancel } from "../bindings/wails-device-mockup/backend/videocomposeservice";
     import { ParseFilePath } from "../bindings/wails-device-mockup/backend/filemanagerservice";
 
     const supportedImageTypes = new Set<ImageType>([".png", ".webp"]);
@@ -16,7 +16,9 @@
     let outputPath = "";
 
     let isPortrait = $state(false);
-    let isCoverting = $state(false);
+    let isConverting = $state(false);
+    let isCancelling = $state(false);
+    let showControls = $state(true);
     let covertingText = $state("0%");
     let aspectRatio = $state(2760/1350);
     let frameSrc = $state("");
@@ -49,7 +51,7 @@
      */
     async function imageFileDroppedAction(data: DroppedData): Promise<void> {
 
-        if (isCoverting) { return; }
+        if (isConverting) { return; }
 
         const info = await ParseFilePath(data.path);
         const ext = info[2];
@@ -85,7 +87,7 @@
         if (frameSrc == "") { return; }
         if (videoSrc == "") { return; }
 
-        isCoverting = true;
+        isConverting = true;
 
         try {
             await Compose(videoPath, videoWidth, videoHeight, framePath, frameWidth, frameHeight, outputPath);
@@ -95,6 +97,23 @@
             reset()
             dialog("info", "影片合成失敗", `${err}`);
         }
+    }
+
+    // 觸發取消影片合成的按鈕點擊事件
+    async function cancelComposeVideo() {
+
+      if (!isConverting || isCancelling) { return; }
+      isCancelling = true;
+
+      try {
+          await Cancel();
+          dialog("info", "取消影片合成", "目前沒有正在進行的合成任務");
+      } catch (err) {
+          dialog("warning", "影片取消合成失敗", `${err}`);
+      } finally {
+        isConverting = false;
+        isCancelling = false;
+      }
     }
 
     // 顯示轉換進度
@@ -113,15 +132,36 @@
         return supportedVideoTypes.has(extension.toLocaleLowerCase() as VideoType);
     }
 
+    /**
+     * 監聽全域鍵盤按下事件；當使用者按下 F 鍵時，切換 slider-field 與 submit-container 的顯示／隱藏
+     * @param {KeyboardEvent} event - 瀏覽器傳入的鍵盤事件
+     */
+    function handleKeydown(event: any) {
+
+        // 避免使用者正在輸入文字時誤觸
+        const target = event.target;
+        const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target.isContentEditable;
+
+        if (isTyping) return;
+
+        // event.key 在按下 Shift + F 時會是 'F'
+        if (event.key.toLowerCase() === 'f') {
+          event.preventDefault();
+          showControls = !showControls;
+        }
+    }
+
     // 回復原設定值
     function reset() {
-      isCoverting = false;
+      isConverting = false;
       covertingText = "0%"
     }
 </script>
 
-<main>
-    <!-- 使用 Svelte 5 的 class 綁定語法 -->
+<!-- 將 keydown 事件監聽器掛到 window；因此即使焦點不在特定按鈕或輸入框上，按下 F 也能觸發；注意：<svelte:window> 必須放在元件最上層，不能放在 {#if} 或其他元素內。 -->
+<svelte:window onkeydown={handleKeydown} />
+
+<main class:preview-only={!showControls}>
     <section class="video-frame" class:is-portrait={isPortrait} style:--aspect-ratio={aspectRatio}  data-file-drop-target>
         <!-- 影片層 -->
         <div class="layer layer-video">
@@ -129,7 +169,6 @@
                 <track kind="captions" />
             </video>
         </div>
-
         <!-- 外框層 -->
         <div class="layer layer-frame" bind:clientWidth={frameWidth} bind:clientHeight={frameHeight}>
             {#if isPortrait}
@@ -143,15 +182,21 @@
             {/if}
         </div>
     </section>
-
-    <section class="slider-field">
-        <div class="slider-header">
-            <label for="videoWidthScale">寬度比例</label>
-            <output for="videoWidthScale">{videoWidthScale}%</output>
-        </div>
-        <input type="range" min="10" max="120" step="0.1" disabled={isCoverting} bind:value={videoWidthScale}/>
-    </section>
-    <section class="submit-container">
-        <input class="submit-action" type="button" value={isCoverting ? covertingText : "開始轉換"} disabled={isCoverting} onclick={composeVideo}/>
-    </section>
+    <!-- 控制層 -->
+    {#if showControls}
+        <section class="slider-field">
+            <div class="slider-header">
+                <label for="videoWidthScale">寬度比例</label>
+                <output for="videoWidthScale">{videoWidthScale}%</output>
+            </div>
+            <input type="range" min="10" max="120" step="0.1" disabled={isConverting} bind:value={videoWidthScale}/>
+        </section>
+        <section class="submit-container">
+            <input class="submit-action" class:cancel-action={isConverting} type="button" value={isConverting ? covertingText : "開始轉換"} disabled={isCancelling} onclick={isConverting ? cancelComposeVideo : composeVideo}/>
+        </section>
+    {/if}
 </main>
+
+<style>
+    @import "./less/main.less"
+</style>

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Device-Mockup
+Exec=Device-Mockup
+Icon=Device-Mockup
+Categories=Development;
+Terminal=false
+Keywords=wails
+Version=1.0
+StartupNotify=false

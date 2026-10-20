@@ -8,6 +8,8 @@
 		<string>Built with Wails, Go, Svelte and FFmpeg</string>
 		<key>CFBundleIconFile</key>
 		<string>icons</string>
+		<key>CFBundleIconName</key>
+		<string>appicon</string>
 		<key>CFBundleIdentifier</key>
 		<string>idv.williamweng.wails-device-mockup</string>
 		<key>CFBundleName</key>
@@ -15,11 +17,11 @@
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
-		<string>0.3.1</string>
+		<string>0.4.0</string>
 		<key>CFBundleVersion</key>
-		<string>20261013</string>
+		<string>20261020</string>
 		<key>LSMinimumSystemVersion</key>
-		<string>15.0.0</string>
+		<string>12.0.0</string>
 		<key>NSAppTransportSecurity</key>
 		<dict>
 			<key>NSAllowsLocalNetworking</key>
