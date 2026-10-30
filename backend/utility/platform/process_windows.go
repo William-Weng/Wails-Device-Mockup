@@ -51,13 +51,8 @@ func KillProcessTree(cmd *exec.Cmd) error {
 		return nil
 	}
 
-	killCmd := exec.Command("taskkill", "/PID", itoa(cmd.Process.Pid), "/T", "/F")
+	killCmd := exec.Command("taskkill", "/PID", strconv.Itoa(cmd.Process.Pid), "/T", "/F")
 	HideWindow(killCmd)
 
 	return killCmd.Run()
-}
-
-// itoa 將整數轉成字串
-func itoa(n int) string {
-	return strconv.Itoa(n)
 }
