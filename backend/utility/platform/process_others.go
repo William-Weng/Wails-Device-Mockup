@@ -33,17 +33,17 @@ func FFProbeDefaultPath() string {
 	return fmt.Sprintf("/opt/homebrew/bin/%s", FFProbeDefaultName())
 }
 
+// 設定子程序的行程群組
 func ConfigureProcessGroup(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
 }
 
+// 強制終止 cmd 及其所有子程序
 func KillProcessTree(cmd *exec.Cmd) error {
 	if cmd.Process == nil {
 		return nil
 	}
-
-	// Negative PID kills the whole process group.
 	return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
 }

@@ -42,19 +42,22 @@ func FFProbeDefaultPath() string {
 	return fmt.Sprintf("C:/Program Files/ffmpeg/bin/%s", FFProbeDefaultName())
 }
 
-// Windows 沒有 Setpgid；若 ffmpeg 不會再 spawn 子程序，通常不需要特別處理
-func ConfigureProcessGroup(cmd *exec.Cmd) {
-}
+// 設定子程序的行程群組
+func ConfigureProcessGroup(cmd *exec.Cmd) {}
 
-// Windows 可用 taskkill 終止整棵 process tree
+// 強制終止 cmd 及其所有子程序
 func KillProcessTree(cmd *exec.Cmd) error {
 	if cmd.Process == nil {
 		return nil
 	}
 
-	return exec.Command("taskkill", "/PID", itoa(cmd.Process.Pid), "/T", "/F").Run()
+	killCmd := exec.Command("taskkill", "/PID", itoa(cmd.Process.Pid), "/T", "/F")
+	HideWindow(killCmd)
+
+	return killCmd.Run()
 }
 
+// itoa 將整數轉成字串
 func itoa(n int) string {
 	return strconv.Itoa(n)
 }
