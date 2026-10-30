@@ -18,6 +18,13 @@ type VideoComposeService struct {
 	currentTaskID string             // 用來識別「目前儲存的 cancel」屬於哪一次 Compose 任務
 }
 
+// ServiceShutdown 是 Wails v3 的 service lifecycle hook
+//
+// 當 Wails App 關閉時會自動呼叫，例如使用者按下視窗 X、Cmd+Q 或系統登出；這裡取消目前任務的 context，讓 exec.CommandContext 終止還在執行的 FFmpeg
+func (service *VideoComposeService) ServiceShutdown() error {
+	return service.Cancel()
+}
+
 // Compose 供 Wails 前端呼叫，開始將 inputVideo 與 frameImage 合成為 outputVideo
 func (service *VideoComposeService) Compose(inputVideo string, inputVideoWidth int, inputVideoHeight int, frameImage string, frameImageWidth int, frameImageHeight int, outputVideo string) error {
 
@@ -63,11 +70,4 @@ func (service *VideoComposeService) Cancel() error {
 	}
 
 	return errors.New("no running compose task")
-}
-
-// ServiceShutdown 是 Wails v3 的 service lifecycle hook
-//
-// 當 Wails App 關閉時會自動呼叫，例如使用者按下視窗 X、Cmd+Q 或系統登出；這裡取消目前任務的 context，讓 exec.CommandContext 終止還在執行的 FFmpeg
-func (service *VideoComposeService) ServiceShutdown() error {
-	return service.Cancel()
 }

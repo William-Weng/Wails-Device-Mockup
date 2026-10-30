@@ -36,7 +36,7 @@ func CreateCommandContext(ctx context.Context, path string, args []string) (*exe
 	}
 
 	cmd := exec.CommandContext(ctx, executablePath, args...)
-	cmd = HideWindow(cmd)
+	HideWindow(cmd)
 
 	return cmd, nil
 }

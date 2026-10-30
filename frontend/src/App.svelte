@@ -13,7 +13,7 @@
 
     let framePath = "";
     let videoPath = "";
-    let outputPath = "";
+    let fileInfo: string[] = [];
 
     let isPortrait = $state(false);
     let isConverting = $state(false);
@@ -52,9 +52,8 @@
     async function imageFileDroppedAction(data: DroppedData): Promise<void> {
 
         if (isConverting) { return; }
-
-        const info = await ParseFilePath(data.path);
-        const ext = info[2];
+        fileInfo = await ParseFilePath(data.path);
+        const ext = fileInfo[2];
 
         if (isImageType(ext)) {
             framePath = data.path;
@@ -71,9 +70,7 @@
         }
 
         if (isVideoType(ext)) {
-            const timestamp = Date.now();
             videoPath = data.path;
-            outputPath = `${info[0]}/${info[1]}-output-${timestamp}.mp4`;
             videoSrc = await SetVideoPath(videoPath);
             return;
         }
@@ -86,6 +83,9 @@
 
         if (frameSrc == "") { return; }
         if (videoSrc == "") { return; }
+
+        const timestamp = Date.now();
+        const outputPath = `${fileInfo[0]}/${fileInfo[1]}-output-${timestamp}.mp4`;
 
         isConverting = true;
 

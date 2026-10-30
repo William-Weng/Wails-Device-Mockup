@@ -9,15 +9,15 @@
 		<key>CFBundleGetInfoString</key>
 		<string>Built with Wails, Go, Svelte and FFmpeg</string>
 		<key>CFBundleIdentifier</key>
-		<string>idv.williamweng.wails-device-mockup</string>
+		<string>idv.william-weng.wails-device-mockup</string>
 		<key>CFBundleName</key>
 		<string>Device Mockup</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
-		<string>0.4.0</string>
+		<string>0.4.1</string>
 		<key>CFBundleVersion</key>
-		<string>0.4.0</string>
+		<string>0.4.1</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>MinimumOSVersion</key>

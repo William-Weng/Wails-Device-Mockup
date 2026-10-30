@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
+	"time"
 	"wails-device-mockup/backend/utility"
 	"wails-device-mockup/backend/utility/platform"
 
@@ -43,12 +43,12 @@ func ComposeVideoWithFrame(app *application.App, ctx context.Context, inputVideo
 		return err
 	}
 
-	// 確保輸出資料夾存在
 	if err := os.MkdirAll(filepath.Dir(outputVideo), 0o755); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}
 
-	filterComplex, err := buildFilterComplex(ctx, inputVideo, inputVideoWidth, inputVideoHeight, frameImage, frameImageWidth, frameImageHeight)
+	filterComplex, err := buildFilterComplex(ctx, videoDuration, inputVideo, inputVideoWidth, inputVideoHeight, frameImage, frameImageWidth, frameImageHeight)
+
 	if err != nil {
 		return err
 	}
@@ -56,53 +56,51 @@ func ComposeVideoWithFrame(app *application.App, ctx context.Context, inputVideo
 	cmd := exec.CommandContext(
 		ctx,
 		ffmpegPath,
-		"-y", // 若輸出檔已存在，直接覆寫
+
+		"-y",
 		"-i", inputVideo,
+
 		"-loop", "1",
 		"-i", frameImage,
+
 		"-loop", "1",
 		"-i", maskImage,
+
 		"-filter_complex", filterComplex,
+
 		"-map", "[out]",
-		"-map", "0:a?", // 有音訊時才映射；沒有音訊不報錯
+		"-map", "0:a?",
+
 		"-c:v", "libx264",
 		"-pix_fmt", "yuv420p",
 		"-c:a", "aac",
+
+		// 讓中斷後的 MP4 仍可播放
+		"-f", "mp4",
+		"-movflags", "+frag_keyframe+empty_moov+default_base_moof",
+
 		"-shortest",
+
 		outputVideo,
 	)
 
-	cmd = platform.HideWindow(cmd)
+	platform.HideWindow(cmd)
+	platform.ConfigureProcessGroup(cmd)
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
+	err = gracefulQuitCommand(cmd, "q", 5*time.Second, func() error {
 
-	cmd.Cancel = func() error {
-		if cmd.Process == nil {
-			return nil
-		}
-		return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-	}
-
-	// if err := cmd.Run(); err != nil {
-	// 	return cmd.Process.Kill()
-	// }
-
-	err = utility.RunCommandStream(
-		cmd,
-		func(source string, text string) {
+		return utility.RunCommandStream(cmd, func(source string, text string) {
 
 			if source != "stderr" {
 				return
 			}
 
-			time, err := parseTimeText(text)
+			t, err := parseTimeText(text)
 			if err != nil {
 				return
 			}
 
-			second, err := timeToSeconds(time)
+			second, err := timeToSeconds(t)
 			if err != nil {
 				return
 			}
@@ -112,13 +110,62 @@ func ComposeVideoWithFrame(app *application.App, ctx context.Context, inputVideo
 				"progress": second,
 			})
 		},
-	)
+		)
+	})
+
+	// 使用者取消不算錯誤。
+	if errors.Is(err, context.Canceled) {
+		return nil
+	}
 
 	if err != nil {
 		return fmt.Errorf("ffmpeg compose failed: %w\n", err)
 	}
 
 	return nil
+}
+
+// GracefulQuitCommand 會在 ctx 取消時對 ffmpeg stdin 送出 quitKey，
+// 並給 ffmpeg WaitDelay 時間完成 flush 與收尾。
+//
+// run 必須是會阻塞直到 cmd 結束的函式，
+// 例如 cmd.Run() 或你的 utility.RunCommandStream(cmd, ...)。
+func gracefulQuitCommand(cmd *exec.Cmd, quitKey string, gracePeriod time.Duration, run func() error) error {
+
+	if cmd.Process != nil {
+		return errors.New("graceful quit must be configured before starting the command")
+	}
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return fmt.Errorf("create command stdin pipe: %w", err)
+	}
+
+	cmd.Cancel = func() error {
+		if cmd.Process == nil {
+			return nil
+		}
+
+		// q 會讓 ffmpeg 優雅退出、flush encoder 並完成輸出。
+		if _, err := stdin.Write([]byte(quitKey)); err != nil {
+			return platform.KillProcessTree(cmd)
+		}
+
+		// 不要在這裡立即 SIGKILL。
+		// 讓 WaitDelay 給 ffmpeg 幾秒鐘完成收尾。
+		return nil
+	}
+
+	// ctx 取消後，最多再等 gracePeriod；
+	// 時間到仍未退出，Go 會關閉 pipes 並終止 process。
+	cmd.WaitDelay = gracePeriod
+
+	err = run()
+
+	// run 返回代表 cmd.Wait() 已結束，此時關閉 stdin 是安全的。
+	_ = stdin.Close()
+
+	return err
 }
 
 // 使用 ffprobe 取得媒體檔案的總時長
@@ -144,7 +191,7 @@ func detectMediaDuration(context context.Context, inputPath string) (duration fl
 		inputPath,
 	)
 
-	cmd = platform.HideWindow(cmd)
+	platform.HideWindow(cmd)
 	output, err := cmd.Output()
 
 	if err != nil {
@@ -167,11 +214,12 @@ func detectMediaDuration(context context.Context, inputPath string) (duration fl
 // buildFilterComplex 建立 FFmpeg 的複雜濾鏡參數（-filter_complex）
 // 參數說明：
 //   - ctx: 上下文，用於控制影片資訊讀取的生命週期
+//   - videoDuration: 原始輸入影片的時間長度 (d=%[10]v)
 //   - inputVideo: 原始輸入影片的路徑（對應 FFmpeg 的 [0:v]）
 //   - inputVideoWidth/Height: 前端預覽畫面上，使用者調整後的影片寬高
 //   - frameImage: 外框圖片路徑（對應 FFmpeg 的 [1:v]，如手機外框，通常包含一個主體框與一個透明鏤空區）
 //   - frameImageWidth/Height: 前端預覽畫面上，外框圖片的寬高
-func buildFilterComplex(ctx context.Context, inputVideo string, inputVideoWidth int, inputVideoHeight int, frameImage string, frameImageWidth int, frameImageHeight int) (string, error) {
+func buildFilterComplex(ctx context.Context, videoDuration float64, inputVideo string, inputVideoWidth int, inputVideoHeight int, frameImage string, frameImageWidth int, frameImageHeight int) (string, error) {
 
 	picture, _, err := utility.ImageInformation(frameImage)
 	if err != nil {
@@ -197,7 +245,7 @@ func buildFilterComplex(ctx context.Context, inputVideo string, inputVideoWidth 
 
 	filterComplex := fmt.Sprintf(
 		// 先建立最底層背景
-		"color=c=#000000:s=%[1]dx%[2]d:r=%[3]s,format=rgba[bg];"+
+		"color=c=#000000:s=%[1]dx%[2]d:r=%[3]s:d=%[10]v,format=rgba[bg];"+
 
 			// 將影片縮放成 cover，並裁成前端預覽實際顯示大小
 			"[0:v]scale=%[4]d:%[5]d:force_original_aspect_ratio=increase,"+
@@ -205,7 +253,7 @@ func buildFilterComplex(ctx context.Context, inputVideo string, inputVideoWidth 
 			"setsar=1,format=rgba[screen];"+
 
 			// 建立完整尺寸的透明影片圖層，並將影片放到中間
-			"color=c=black@0.0:s=%[1]dx%[2]d:r=%[3]s,format=rgba[canvas];"+
+			"color=c=black@0.0:s=%[1]dx%[2]d:r=%[3]s:d=%[10]v,format=rgba[canvas];"+
 			"[canvas][screen]overlay=%[6]d:%[7]d:format=auto[videoPlaced];"+
 
 			// mask：白色保留畫面、黑色設為透明；將 mask 灰階亮度帶入 videoPlaced 的 alpha channel
@@ -213,8 +261,8 @@ func buildFilterComplex(ctx context.Context, inputVideo string, inputVideoWidth 
 			"[videoPlaced][screenMask]alphamerge[maskedVideo];"+
 
 			// 疊圖順序：背景 → 已 mask 的影片 → 手機外框
-			"[bg][maskedVideo]overlay=0:0:format=auto[withVideo];"+
-			"[withVideo][1:v]overlay=0:0:format=auto,"+
+			"[bg][maskedVideo]overlay=0:0:format=auto:shortest=1[withVideo];"+
+			"[withVideo][1:v]overlay=0:0:format=auto:shortest=1,"+
 
 			// 輸出尺寸與相容格式
 			"scale=%[8]d:%[9]d:flags=lanczos,"+
@@ -229,6 +277,7 @@ func buildFilterComplex(ctx context.Context, inputVideo string, inputVideoWidth 
 		overlayY,         // 7
 		finalVideoWidth,  // 8
 		videoHeight,      // 9
+		videoDuration,    //10
 	)
 
 	return filterComplex, nil
