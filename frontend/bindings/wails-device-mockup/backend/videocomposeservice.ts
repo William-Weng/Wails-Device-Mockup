@@ -25,3 +25,10 @@ export function Cancel(): $CancellablePromise<void> {
 export function Compose(inputVideo: string, inputVideoWidth: number, inputVideoHeight: number, frameImage: string, frameImageWidth: number, frameImageHeight: number, outputVideo: string): $CancellablePromise<void> {
     return $Call.ByID(3292587877, inputVideo, inputVideoWidth, inputVideoHeight, frameImage, frameImageWidth, frameImageHeight, outputVideo);
 }
+
+/**
+ * CreateScreenMaskOnTemp 讀取手機外框圖，偵測螢幕透明區域，並將灰階 mask 固定輸出到系統暫存資料夾的 screen-mask.png
+ */
+export function CreateScreenMaskOnTemp(frameImagePath: string, maskColor: string): $CancellablePromise<string> {
+    return $Call.ByID(2135185564, frameImagePath, maskColor);
+}

@@ -11,7 +11,7 @@
 
 ## [操作介面](https://v3.wails.io/zh-tw/reference/cli/)
 
-https://github.com/user-attachments/assets/1d909b36-8931-4206-9ac8-350b7b1d5c90
+https://github.com/user-attachments/assets/d7a24568-2012-4c6a-bb60-c6ae1492a912
 
 ## [功能特色](https://v3.wails.io/zh-tw/concepts/build-system/)
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image/color"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,7 +27,7 @@ var timeRegexp = regexp.MustCompile(`time=(\d+:\d{2}:\d{2}(?:\.\d+)?)`)
 // - 螢幕位置：(200, 85)
 // - 螢幕尺寸：2320 x 1180
 // - 輸出尺寸：1280 x 720
-func ComposeVideoWithFrame(app *application.App, ctx context.Context, inputVideo string, inputVideoWidth int, inputVideoHeight int, frameImage string, frameImageWidth int, frameImageHeight int, outputVideo string) error {
+func ComposeVideoWithFrame(app *application.App, ctx context.Context, innerColor color.RGBA, outterColor color.RGBA, inputVideo string, inputVideoWidth int, inputVideoHeight int, frameImage string, frameImageWidth int, frameImageHeight int, outputVideo string) error {
 
 	videoDuration, err := detectMediaDuration(ctx, inputVideo)
 	if err != nil {
@@ -38,7 +39,7 @@ func ComposeVideoWithFrame(app *application.App, ctx context.Context, inputVideo
 		ffmpegPath = platform.FFMpegDefaultPath()
 	}
 
-	maskImage, err := CreateScreenMaskOnTemp(frameImage)
+	maskImage, err := CreateScreenMaskOnTemp(frameImage, innerColor, outterColor)
 	if err != nil {
 		return err
 	}

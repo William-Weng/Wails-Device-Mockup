@@ -3,9 +3,11 @@ package backend
 import (
 	"context"
 	"errors"
+	"image/color"
 	"sync"
 	"time"
 	"wails-device-mockup/backend/tools"
+	"wails-device-mockup/backend/utility"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -53,7 +55,23 @@ func (service *VideoComposeService) Compose(inputVideo string, inputVideoWidth i
 		cancel()
 	}()
 
-	return tools.ComposeVideoWithFrame(service.App, ctx, inputVideo, inputVideoWidth, inputVideoHeight, frameImage, frameImageWidth, frameImageHeight, outputVideo)
+	innerColor := color.RGBA{R: 255, G: 255, B: 255, A: 255}
+	outterColor := color.RGBA{R: 0, G: 0, B: 0, A: 255}
+
+	return tools.ComposeVideoWithFrame(service.App, ctx, innerColor, outterColor, inputVideo, inputVideoWidth, inputVideoHeight, frameImage, frameImageWidth, frameImageHeight, outputVideo)
+}
+
+// CreateScreenMaskOnTemp 讀取手機外框圖，偵測螢幕透明區域，並將灰階 mask 固定輸出到系統暫存資料夾的 screen-mask.png
+func (service *VideoComposeService) CreateScreenMaskOnTemp(frameImagePath string, maskColor string) (string, error) {
+
+	innerColor := color.RGBA{R: 0, G: 0, B: 0, A: 0}
+
+	outterColor, err := utility.HexToRGBA(maskColor)
+	if err != nil {
+		outterColor = color.RGBA{R: 0, G: 0, B: 0, A: 255}
+	}
+
+	return tools.CreateScreenMaskOnTemp(frameImagePath, innerColor, outterColor)
 }
 
 // Cancel 供 Wails 前端呼叫，主動停止目前正在執行的 FFmpeg 合成任務

@@ -5,7 +5,7 @@
 
     import { SetFramePath, ImageInformation } from "../bindings/wails-device-mockup/backend/imagepreviewservice";
     import { SetVideoPath } from "../bindings/wails-device-mockup/backend/videopreviewservice";
-    import { Compose, Cancel } from "../bindings/wails-device-mockup/backend/videocomposeservice";
+    import { Compose, Cancel, CreateScreenMaskOnTemp } from "../bindings/wails-device-mockup/backend/videocomposeservice";
     import { ParseFilePath } from "../bindings/wails-device-mockup/backend/filemanagerservice";
 
     const supportedImageTypes = new Set<ImageType>([".png", ".webp"]);
@@ -22,6 +22,7 @@
     let covertingText = $state("0%");
     let aspectRatio = $state(2760/1350);
     let frameSrc = $state("");
+    let tempFrameSrc = $state("");
     let videoSrc = $state("");
 
     let frameWidth = $state(0);
@@ -56,14 +57,21 @@
         const ext = fileInfo[2];
 
         if (isImageType(ext)) {
+
             framePath = data.path;
             frameSrc = await SetFramePath(framePath);
+
             try {
-              const info = await ImageInformation(framePath) as FrameInformation
-              isPortrait = (info.width < info.height)
-              aspectRatio = info.width / info.height
+              const tempPath = await CreateScreenMaskOnTemp(framePath, "#1c1c1c");
+              const info = await ImageInformation(framePath) as FrameInformation;
+
+              tempFrameSrc = await SetFramePath(tempPath);
+              console.log(`tempImage = ${tempPath}`)
+
+              isPortrait = (info.width < info.height);
+              aspectRatio = info.width / info.height;
             } catch (err) {
-              aspectRatio = 2760 / 1350
+              aspectRatio = 2760 / 1350;
             }
 
             return;
@@ -168,6 +176,17 @@
             <video controls src={videoSrc} style="width: {videoWidth}px;" bind:clientHeight={videoHeight}>
                 <track kind="captions" />
             </video>
+        </div>
+        <div class="layer layer-frame" bind:clientWidth={frameWidth} bind:clientHeight={frameHeight}>
+            {#if isPortrait}
+                <div class="spacer"></div>
+            {/if}
+
+            <img src={tempFrameSrc} alt="手機外框" />
+
+            {#if isPortrait}
+                <div class="spacer"></div>
+            {/if}
         </div>
         <!-- 外框層 -->
         <div class="layer layer-frame" bind:clientWidth={frameWidth} bind:clientHeight={frameHeight}>
