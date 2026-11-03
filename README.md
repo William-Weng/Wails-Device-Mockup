@@ -7,7 +7,9 @@
 ![Tag](https://img.shields.io/github/v/tag/William-Weng/Wails-Device-Mockup?style=flat&label=Tag)
 ![Stars](https://img.shields.io/github/stars/William-Weng/Wails-Device-Mockup?style=flat&label=Stars)
 
-使用 Wails、Go、Svelte 與 TypeScript 建立的裝置 Mockup 工具，可將影片合成至裝置外框中，快速產生適合展示、簡報與產品宣傳使用的裝置預覽影片。
+它是一款以 Wails、Go、Svelte 與 TypeScript 開發的桌面工具，能將影片合成到裝置外框中，快速產生適合用於展示、簡報與產品宣傳的裝置預覽影片。
+
+按下 `F` 鍵即可切換至「僅顯示預覽影片框」模式，方便進行快速展示。
 
 ## [操作介面](https://v3.wails.io/zh-tw/reference/cli/)
 
