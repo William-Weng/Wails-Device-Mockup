@@ -13,6 +13,7 @@
 
     let framePath = "";
     let videoPath = "";
+    let version = 0;
     let fileInfo: string[] = [];
 
     let isPortrait = $state(false);
@@ -58,14 +59,19 @@
 
         if (isImageType(ext)) {
 
+            ++version;
+
+            const _frameSrc = await SetFramePath(data.path);
+
             framePath = data.path;
-            frameSrc = await SetFramePath(framePath);
+            frameSrc = cacheBustingSrc(_frameSrc, version)
 
             try {
               const tempPath = await CreateScreenMaskOnTemp(framePath, "#1c1c1c");
               const info = await ImageInformation(framePath) as FrameInformation;
+              const _tempFrameSrc = await SetFramePath(tempPath);
 
-              tempFrameSrc = await SetFramePath(tempPath);
+              tempFrameSrc = cacheBustingSrc(_tempFrameSrc, version);
               console.log(`tempImage = ${tempPath}`)
 
               isPortrait = (info.width < info.height);
@@ -159,6 +165,12 @@
         }
     }
 
+    // 避免同一 path 的圖片被 WebView 快取
+    function cacheBustingSrc(src: string, version: number): string {
+      const newSrc = src.startsWith('data:') ? src : `${src}${src.includes('?') ? '&' : '?'}v=${version}`;
+      return newSrc
+    }
+
     // 回復原設定值
     function reset() {
       isConverting = false;
@@ -182,7 +194,7 @@
                 <div class="spacer"></div>
             {/if}
 
-            <img src={tempFrameSrc} alt="手機外框" />
+            <img src={tempFrameSrc} alt="遮罩外框" />
 
             {#if isPortrait}
                 <div class="spacer"></div>
