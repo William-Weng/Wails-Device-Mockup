@@ -54,8 +54,8 @@
     async function imageFileDroppedAction(data: DroppedData): Promise<void> {
 
         if (isConverting) { return; }
-        fileInfo = await ParseFilePath(data.path);
-        const ext = fileInfo[2];
+        const _fileInfo = await ParseFilePath(data.path);
+        const ext = _fileInfo[2];
 
         if (isImageType(ext)) {
 
@@ -72,7 +72,6 @@
               const _tempFrameSrc = await SetFramePath(tempPath);
 
               tempFrameSrc = cacheBustingSrc(_tempFrameSrc, version);
-              console.log(`tempImage = ${tempPath}`)
 
               isPortrait = (info.width < info.height);
               aspectRatio = info.width / info.height;
@@ -84,6 +83,7 @@
         }
 
         if (isVideoType(ext)) {
+            fileInfo = _fileInfo
             videoPath = data.path;
             videoSrc = await SetVideoPath(videoPath);
             return;
@@ -137,7 +137,7 @@
     }
 
     // 檢查是否為支援的圖片副檔名
-    function isImageType(extension: string): extension is VideoType {
+    function isImageType(extension: string): extension is ImageType {
         return supportedImageTypes.has(extension.toLocaleLowerCase() as ImageType);
     }
 
