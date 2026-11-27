@@ -54,36 +54,8 @@ func ComposeVideoWithFrame(app *application.App, ctx context.Context, innerColor
 		return err
 	}
 
-	cmd := exec.CommandContext(
-		ctx,
-		ffmpegPath,
-
-		"-y",
-		"-i", inputVideo,
-
-		"-loop", "1",
-		"-i", frameImage,
-
-		"-loop", "1",
-		"-i", maskImage,
-
-		"-filter_complex", filterComplex,
-
-		"-map", "[out]",
-		"-map", "0:a?",
-
-		"-c:v", "libx264",
-		"-pix_fmt", "yuv420p",
-		"-c:a", "aac",
-
-		// 讓中斷後的 MP4 仍可播放
-		"-f", "mp4",
-		"-movflags", "+frag_keyframe+empty_moov+default_base_moof",
-
-		"-shortest",
-
-		outputVideo,
-	)
+	args := platform.CombineParameter(inputVideo, frameImage, maskImage, filterComplex, outputVideo)
+	cmd := exec.CommandContext(ctx, ffmpegPath, args...)
 
 	platform.HideWindow(cmd)
 	platform.ConfigureProcessGroup(cmd)

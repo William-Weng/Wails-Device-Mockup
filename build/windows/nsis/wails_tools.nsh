@@ -14,7 +14,7 @@
     !define INFO_PRODUCTNAME "Device Mockup"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "0.4.4"
+    !define INFO_PRODUCTVERSION "0.5.0"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "Copyright © 2026, William Weng"
