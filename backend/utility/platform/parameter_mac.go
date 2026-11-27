@@ -37,7 +37,7 @@ func CombineParameter(inputVideo string, frameImage string, maskImage string, fi
 
 		// macOS VideoToolbox 硬體 H.264 編碼
 		"-c:v", "h264_videotoolbox",
-		"-b:v", "4M",
+		"-b:v", "30M",
 		"-pix_fmt", "yuv420p",
 
 		"-c:a", "aac",
